@@ -425,6 +425,7 @@ tvheadend.dvr_upcoming = function(panel, index) {
             columnId = grid.colModel.findColumnIndex('duplicate');
             grid.colModel.setHidden(columnId, true);
         }
+        tvheadend.groupingViewReady(grid);
     }
 
     tvheadend.idnode_grid(panel, {
@@ -487,7 +488,7 @@ tvheadend.dvr_upcoming = function(panel, index) {
             actions,
             tvheadend.contentTypeAction,
         ],
-        tbar: [stopButton, abortButton, prevrecButton, dupButton],
+        tbar: [stopButton, abortButton, prevrecButton, dupButton, tvheadend.groupingButton],
         selected: selected,
         beforeedit: beforeedit,
         viewready: viewready
@@ -503,8 +504,6 @@ tvheadend.dvr_finished = function(panel, index) {
 
     var actions = tvheadend.dvrRowActions();
     var buttonFcn = tvheadend.dvrButtonFcn;
-    var pageSize = 50;
-    var activePage = 0;
 
     var downloadButton = {
         name: 'download',
@@ -571,42 +570,6 @@ tvheadend.dvr_finished = function(panel, index) {
         }
     };
 
-    function groupingText(field) {
-        return field ? _('Enable grouping') : _('Disable grouping');
-    }
-
-    var groupingButton = {
-        name: 'grouping',
-        builder: function() {
-            return new Ext.Toolbar.Button({
-                tooltip: _('When enabled, group the recordings by the selected column.'),
-                iconCls: 'grouping',
-                text: _('Enable grouping')
-            });
-        },
-        callback: function(conf, e, store, select) {
-            this.setText(groupingText(store.groupField));
-            if (!store.groupField){
-                select.grid.view.enableGrouping = true;
-                pageSize = select.grid.bottomToolbar.pageSize; // Store page size
-                activePage = select.grid.bottomToolbar.getPageData().activePage; // Store active page
-                select.grid.bottomToolbar.pageSize = 999999999 // Select all rows
-                select.grid.bottomToolbar.changePage(0);
-                store.reload();
-                select.grid.store.groupBy(store.sortInfo.field);
-                select.grid.fireEvent('groupchange', select.grid, store.getGroupState());
-                select.grid.view.refresh();
-            }else{
-                select.grid.bottomToolbar.pageSize = pageSize // Restore page size
-                select.grid.bottomToolbar.changePage(activePage); // Restore previous active page
-                store.reload();
-                store.clearGrouping();
-                select.grid.view.enableGrouping = false;
-                select.grid.fireEvent('groupchange', select.grid, null);
-            }
-        }
-    };
-
     function selected(s, abuttons) {
         var r = s.getSelections();
         var b = r.length > 0 && r[0].data.filesize > 0;
@@ -617,12 +580,7 @@ tvheadend.dvr_finished = function(panel, index) {
     }
 
     function viewready(grid) {
-        grid.abuttons['grouping'].setText(groupingText(!grid.store.groupField));
-        if (grid.store.groupField){
-          grid.bottomToolbar.pageSize = 999999999 // Select all rows
-          grid.bottomToolbar.changePage(0);
-          grid.store.reload();
-        }
+        tvheadend.groupingViewReady(grid);
     }
 
     tvheadend.idnode_grid(panel, {
@@ -672,7 +630,7 @@ tvheadend.dvr_finished = function(panel, index) {
                     return tvheadend.playLink('play/dvrfile/' + r.id, title);
                 }
             }],
-        tbar: [removeButton, downloadButton, rerecordButton, moveButton, groupingButton],
+        tbar: [removeButton, downloadButton, rerecordButton, moveButton, tvheadend.groupingButton],
         selected: selected,
         viewready: viewready,
         viewTpl: '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "' +
@@ -747,6 +705,10 @@ tvheadend.dvr_failed = function(panel, index) {
         abuttons.move.setDisabled(r.length <= 0);
     }
 
+    function viewready(grid) {
+        tvheadend.groupingViewReady(grid);
+    }
+
     tvheadend.idnode_grid(panel, {
         url: 'api/dvr/entry',
         gridURL: 'api/dvr/entry/grid_failed',
@@ -791,8 +753,9 @@ tvheadend.dvr_failed = function(panel, index) {
                     return tvheadend.playLink('play/dvrfile/' + r.id, title);
                 }
             }],
-        tbar: [downloadButton, rerecordButton, moveButton],
-        selected: selected
+        tbar: [downloadButton, rerecordButton, moveButton, tvheadend.groupingButton],
+        selected: selected,
+        viewready: viewready
     });
 
     return panel;
@@ -826,6 +789,10 @@ tvheadend.dvr_removed = function(panel, index) {
         abuttons.rerecord.setDisabled(r.length <= 0);
     }
 
+    function viewready(grid) {
+        tvheadend.groupingViewReady(grid);
+    }
+
     tvheadend.idnode_grid(panel, {
         url: 'api/dvr/entry',
         gridURL: 'api/dvr/entry/grid_removed',
@@ -854,8 +821,9 @@ tvheadend.dvr_removed = function(panel, index) {
         },
         plugins: [actions],
         lcol: [actions],
-        tbar: [rerecordButton],
-        selected: selected
+        tbar: [rerecordButton, tvheadend.groupingButton],
+        selected: selected,
+        viewready: viewready
     });
 
     return panel;

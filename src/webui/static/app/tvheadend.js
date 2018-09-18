@@ -366,6 +366,54 @@ tvheadend.uilevel_match = function(target, current) {
     return true;
 }
 
+tvheadend.groupingText = function(field) {
+    return field ? _('Enable grouping') : _('Disable grouping');
+}
+
+tvheadend.groupingButton = {
+    name: 'grouping',
+    builder: function() {
+        return new Ext.Toolbar.Button({
+            tooltip: _('When enabled, group by the selected column.'),
+            iconCls: 'grouping',
+            text: _('Enable grouping'),
+            groupingPageSize: 50,
+            groupingActivePage: 0
+        });
+    },
+    callback: function(conf, e, store, select) {
+        this.setText(tvheadend.groupingText(store.groupField));
+        if (!store.groupField){
+            select.grid.view.enableGrouping = true;
+            this.groupingPageSize = select.grid.bottomToolbar.pageSize; // Store page size
+            this.groupingActivePage = select.grid.bottomToolbar.getPageData().activePage; // Store active page
+            select.grid.bottomToolbar.pageSize = 999999999 // Select all rows
+            select.grid.bottomToolbar.changePage(0);
+            store.reload();
+            select.grid.store.groupBy(store.sortInfo.field);
+            select.grid.fireEvent('groupchange', select.grid, store.getGroupState());
+            select.grid.view.refresh();
+        }else{
+            select.grid.bottomToolbar.pageSize = this.groupingPageSize // Restore page size
+            select.grid.bottomToolbar.changePage(this.groupingActivePage); // Restore previous active page
+            store.reload();
+            store.clearGrouping();
+            select.grid.view.enableGrouping = false;
+            select.grid.fireEvent('groupchange', select.grid, null);
+        }
+    }
+};
+
+
+tvheadend.groupingViewReady = function(grid) {
+  grid.abuttons['grouping'].setText(tvheadend.groupingText(!grid.store.groupField));
+  if (grid.store.groupField){
+    grid.bottomToolbar.pageSize = 999999999 // Select all rows
+    grid.bottomToolbar.changePage(0);
+    grid.store.reload();
+  }
+}
+
 /*
  * Select specific tab
  */
